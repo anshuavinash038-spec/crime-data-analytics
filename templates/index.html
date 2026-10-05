@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}Crime Data Analytics & Visualization System{% endblock %}
+
+{% block content %}
+<!-- Professional Hero Section -->
+<div class="row align-items-center py-5 hero-banner rounded-4 shadow-sm mb-5 px-4 text-white position-relative overflow-hidden" 
+     style="background: linear-gradient(135deg, #0b1329 0%, #1e293b 60%, #0f172a 100%); border: 1px solid rgba(255, 255, 255, 0.08);">
+    
+    <div class="col-lg-7 mb-4 mb-lg-0 pe-lg-4">
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill mb-3"
+             style="background: rgba(37, 99, 235, 0.15); border: 1px solid rgba(59, 130, 246, 0.3);">
+            <i class="fa-solid fa-graduation-cap text-warning fs-7"></i>
+            <span class="small fw-semibold text-light text-uppercase tracking-wider" style="letter-spacing: 0.5px; font-size: 0.78rem;">
+                B.Sc. / B.Tech Computer Science &amp; IT Final Year Major Project
+            </span>
+        </div>
+        
+        <h1 class="display-5 fw-bold mb-3 text-white" style="line-height: 1.25;">
+            Crime Data Analytics &amp; <span class="text-primary" style="color: #60a5fa !important;">Visualization System</span>
+        </h1>
+        
+        <p class="mb-4 fs-5" style="max-width: 600px; color: #cbd5e1; line-height: 1.6; font-size: 1.05rem;">
+            A full-stack data analytics platform developed to aggregate, analyze, and visualize multi-year crime patterns across India's 28 States and administrative jurisdictions using Python Flask, SQL, and Microsoft Power BI.
+        </p>
+
+        <div class="d-flex flex-wrap gap-3 pt-1">
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('powerbi.index') }}" class="btn btn-warning px-4 py-2.5 fw-bold shadow-sm rounded-3 text-dark">
+                <i class="fa-solid fa-chart-column me-2 text-dark"></i> Open Power BI Dashboard
+            </a>
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary px-4 py-2.5 fw-semibold shadow-sm rounded-3">
+                <i class="fa-solid fa-chart-line me-2"></i> Open Dashboard
+            </a>
+            <a href="{{ url_for('visualization.index') }}" class="btn btn-outline-light px-4 py-2.5 fw-semibold rounded-3">
+                <i class="fa-solid fa-chart-pie me-2"></i> View Visualizations
+            </a>
+            {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary px-4 py-2.5 fw-semibold shadow-sm rounded-3">
+                <i class="fa-solid fa-right-to-bracket me-2"></i> Sign In to Access Portal
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-light px-4 py-2.5 fw-semibold rounded-3">
+                <i class="fa-solid fa-user-plus me-2"></i> Create Account
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Summary Box: Distinguishing Master Geography from Crime Coverage -->
+    <div class="col-lg-5">
+        <div class="card border-0 rounded-4 p-4 text-white shadow" 
+             style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255,255,255,0.1) !important;">
+            
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-3" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 text-white" style="background: #2563eb;">
+                        <i class="fa-solid fa-map-location-dot fs-5"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-white">Geographical Master Data</h6>
+                        <small style="color: #94a3b8; font-size: 0.78rem;">LGD Directory (lgdirectory.gov.in)</small>
+                    </div>
+                </div>
+                <span class="badge px-3 py-1.5 rounded-pill" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
+                    <i class="fa-solid fa-shield-check me-1"></i> Verified
+                </span>
+            </div>
+
+            <!-- Master Geography Counts -->
+            <div class="row g-2 mb-3">
+                <div class="col-4">
+                    <div class="p-2.5 rounded-3 text-center" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.06);">
+                        <small class="text-muted d-block" style="color: #94a3b8 !important; font-size: 0.72rem;">States in Master</small>
+                        <h4 class="fw-bold mb-0 text-white mt-1">{{ geo_stats.master_states_count if geo_stats else 28 }}</h4>
+                        <small class="text-info" style="font-size: 0.7rem;">Official States</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="p-2.5 rounded-3 text-center" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.06);">
+                        <small class="text-muted d-block" style="color: #94a3b8 !important; font-size: 0.72rem;">Districts in Master</small>
+                        <h4 class="fw-bold mb-0 text-white mt-1">{{ geo_stats.master_districts_count if geo_stats else 743 }}</h4>
+                        <small class="text-warning" style="font-size: 0.7rem;">LGD Districts</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="p-2.5 rounded-3 text-center" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.06);">
+                        <small class="text-muted d-block" style="color: #94a3b8 !important; font-size: 0.72rem;">Sub-Districts</small>
+                        <h4 class="fw-bold mb-0 text-white mt-1">{{ geo_stats.master_areas_count if geo_stats else 4204 }}</h4>
+                        <small class="text-success" style="font-size: 0.7rem;">LGD Tehsils</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Crime Dataset Coverage Strip -->
+            <div class="p-2.5 rounded-3" style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2);">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small fw-semibold text-white" style="font-size: 0.78rem;">
+                        <i class="fa-solid fa-chart-pie text-primary me-1"></i> Crime Dataset Coverage ({{ geo_stats.min_year if geo_stats else 2021 }}–{{ geo_stats.max_year if geo_stats else 2025 }})
+                    </span>
+                    <span class="badge bg-primary text-white" style="font-size: 0.7rem;">{{ "{:,}".format(geo_stats.total_crime_records) if geo_stats else "72,480" }} Records</span>
+                </div>
+                <small style="color: #cbd5e1; font-size: 0.75rem;">
+                    Tracking <strong>{{ "{:,}".format(geo_stats.total_cases) if geo_stats else "11.3M" }}</strong> reported cases across <strong>{{ geo_stats.crime_districts_count if geo_stats else 219 }}</strong> districts &amp; <strong>{{ geo_stats.crime_areas_count if geo_stats else 1203 }}</strong> sub-districts.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Primary Stats Strip: Dynamically Calculated -->
+{% if stats %}
+<div class="row g-3 mb-5">
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-primary border-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.75rem;">Total Reported Cases</span>
+                    <h3 class="fw-bold text-primary mb-0 mt-1">{{ "{:,}".format(stats.total_cases) }}</h3>
+                    <small class="text-muted" style="font-size: 0.72rem;">Across 28 Indian States</small>
+                </div>
+                <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-circle">
+                    <i class="fa-solid fa-database fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-warning border-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.75rem;">Chargesheeted</span>
+                    <h3 class="fw-bold text-dark mb-0 mt-1">{{ "{:,}".format(stats.total_chargesheeted) }}</h3>
+                    <small class="text-muted" style="font-size: 0.72rem;">Police Action Rate: {{ "%.1f"|format((stats.total_chargesheeted / stats.total_cases * 100) if stats.total_cases else 0) }}%</small>
+                </div>
+                <div class="p-3 bg-warning bg-opacity-10 text-warning rounded-circle">
+                    <i class="fa-solid fa-file-shield fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-success border-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.75rem;">Convictions Secured</span>
+                    <h3 class="fw-bold text-success mb-0 mt-1">{{ "{:,}".format(stats.total_convictions) }}</h3>
+                    <small class="text-muted" style="font-size: 0.72rem;">Judicial Conviction Rate: {{ "%.1f"|format((stats.total_convictions / stats.total_chargesheeted * 100) if stats.total_chargesheeted else 0) }}%</small>
+                </div>
+                <div class="p-3 bg-success bg-opacity-10 text-success rounded-circle">
+                    <i class="fa-solid fa-gavel fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-danger border-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.75rem;">Avg Crime Rate</span>
+                    <h3 class="fw-bold text-danger mb-0 mt-1">{{ "%.2f"|format(stats.avg_crime_rate) }} <small class="fs-6 text-muted">/100k</small></h3>
+                    <small class="text-muted" style="font-size: 0.72rem;">Normalized Incidence Ratio</small>
+                </div>
+                <div class="p-3 bg-danger bg-opacity-10 text-danger rounded-circle">
+                    <i class="fa-solid fa-chart-line fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Key Features Grid -->
+<div class="row mb-5">
+    <div class="col-12 text-center mb-4">
+        <h3 class="fw-bold text-dark mb-1">Key Analytical Capabilities</h3>
+        <p class="text-muted">Explore comprehensive tools designed for crime data inspection and administrative reporting</p>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm rounded-4 p-3 bg-white">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-3">
+                        <i class="fa-solid fa-sitemap fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Official Hierarchy</h5>
+                        <small class="text-primary fw-semibold">State &rarr; District &rarr; Sub-District</small>
+                    </div>
+                </div>
+                <p class="card-text text-muted small" style="line-height: 1.6;">
+                    Structured administrative drill-down mapping crime patterns across all 28 states, districts, and tehsils according to official LGD codes.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm rounded-4 p-3 bg-white">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="p-3 bg-success bg-opacity-10 text-success rounded-3">
+                        <i class="fa-solid fa-chart-pie fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Interactive Charts</h5>
+                        <small class="text-success fw-semibold">Visual Data Exploration</small>
+                    </div>
+                </div>
+                <p class="card-text text-muted small" style="line-height: 1.6;">
+                    Dynamic year-over-year trends (2021–2025), crime category shares, state comparisons, and police conviction indicators.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm rounded-4 p-3 bg-white">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="p-3 bg-warning bg-opacity-10 text-warning rounded-3">
+                        <i class="fa-solid fa-calculator fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Statistical Engine</h5>
+                        <small class="text-warning fw-semibold">Performance Metrics</small>
+                    </div>
+                </div>
+                <p class="card-text text-muted small" style="line-height: 1.6;">
+                    Calculates chargesheet rates, conviction percentages, and crime incidence per 100,000 population with multi-area side-by-side evaluation.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm rounded-4 p-3 bg-white">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="p-3 bg-danger bg-opacity-10 text-danger rounded-3">
+                        <i class="fa-solid fa-border-all fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Area Crime Matrix</h5>
+                        <small class="text-danger fw-semibold">Density &amp; Intensity Heatmap</small>
+                    </div>
+                </div>
+                <p class="card-text text-muted small" style="line-height: 1.6;">
+                    Cross-tabulated 2D heatmaps showing crime concentration across sub-districts and crime categories with real-time state and district filters.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm rounded-4 p-3 bg-white">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="p-3 bg-info bg-opacity-10 text-info rounded-3">
+                        <i class="fa-solid fa-magnifying-glass fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Multi-Parameter Search</h5>
+                        <small class="text-info fw-semibold">Fast Database Lookup</small>
+                    </div>
+                </div>
+                <p class="card-text text-muted small" style="line-height: 1.6;">
+                    Filter and search records across specific years, states, districts, crime categories, and sub-district keywords with exact matches.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm rounded-4 p-3 bg-white">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="p-3 bg-dark bg-opacity-10 text-dark rounded-3">
+                        <i class="fa-solid fa-file-arrow-down fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Reports &amp; Export</h5>
+                        <small class="text-dark fw-semibold">Print &amp; Data Downloads</small>
+                    </div>
+                </div>
+                <p class="card-text text-muted small" style="line-height: 1.6;">
+                    Export summary tables and generate printable analytical reports for administrative evaluation, audits, and presentations.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.is_authenticated %}
+<!-- Logged In Quick Access -->
+<div class="card border-0 shadow-sm rounded-4 bg-primary text-white p-4 mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8 mb-3 mb-md-0">
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-compass me-2"></i>Quick Navigation</h5>
+            <p class="mb-0 text-white-50 small">Access your dashboard, data tables, and statistical analysis directly.</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-light fw-semibold px-4 me-2">Dashboard</a>
+            <a href="{{ url_for('analysis.index') }}" class="btn btn-outline-light fw-semibold px-3">Analytics</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

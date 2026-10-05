@@ -1,0 +1,544 @@
+{% extends "base.html" %}
+
+{% block title %}Microsoft Power BI Analytics Portal - Crime Data{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --pbi-yellow: #f2c811;
+        --pbi-dark: #1f1f1f;
+        --pbi-gray: #f3f2f1;
+        --pbi-border: #e1dfdd;
+    }
+    .pbi-app-container {
+        background-color: #f8f9fa;
+        border: 1px solid var(--pbi-border);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    }
+    .pbi-ribbon {
+        background-color: var(--pbi-dark);
+        color: #ffffff;
+        padding: 10px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 3px solid var(--pbi-yellow);
+    }
+    .pbi-logo-badge {
+        background: var(--pbi-yellow);
+        color: #000;
+        font-weight: 800;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .pbi-toolbar {
+        background-color: #ffffff;
+        border-bottom: 1px solid var(--pbi-border);
+        padding: 8px 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+    }
+    .pbi-card {
+        background: #ffffff;
+        border: 1px solid #edebe9;
+        border-radius: 8px;
+        padding: 16px 20px;
+        box-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,0.06);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .pbi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .pbi-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background-color: var(--pbi-yellow);
+    }
+    .pbi-card-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #605e5c;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+    }
+    .pbi-card-value {
+        font-size: 1.85rem;
+        font-weight: 700;
+        color: #201f1e;
+        line-height: 1.2;
+    }
+    .pbi-card-sub {
+        font-size: 0.78rem;
+        color: #8a8886;
+        margin-top: 4px;
+    }
+    .pbi-visual-box {
+        background: #ffffff;
+        border: 1px solid #edebe9;
+        border-radius: 8px;
+        padding: 14px;
+        box-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,0.06);
+        height: 100%;
+    }
+    .pbi-visual-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #f3f2f1;
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+    }
+    .pbi-visual-header h6 {
+        font-weight: 700;
+        color: #323130;
+        margin: 0;
+        font-size: 0.95rem;
+    }
+    .pbi-tab-bar {
+        background: #edebe9;
+        padding: 6px 14px;
+        border-top: 1px solid #d2d0ce;
+        display: flex;
+        gap: 8px;
+        font-size: 0.82rem;
+        align-items: center;
+    }
+    .pbi-tab {
+        background: #ffffff;
+        padding: 4px 14px;
+        border-radius: 4px 4px 0 0;
+        font-weight: 600;
+        color: #201f1e;
+        border-bottom: 2px solid var(--pbi-yellow);
+    }
+    .dax-code {
+        background: #1e1e1e;
+        color: #4ec9b0;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-family: 'Consolas', 'Fira Code', monospace;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0 mb-4">
+    <!-- Analytics Module Header with Unified Sub-Navigation -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden border-start border-4 border-primary">
+        <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center">
+                <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3 me-3">
+                    <i class="fa-solid fa-chart-line fs-3"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold text-dark mb-1">Crime Analytics & Intelligence Center</h3>
+                    <p class="text-muted small mb-0">Statistical modeling, interactive Plotly visualizations & Power BI Desktop reports</p>
+                </div>
+            </div>
+            <ul class="nav nav-pills gap-1">
+                <li class="nav-item">
+                    <a class="nav-link fw-bold px-3 py-2 text-nowrap text-secondary bg-light" href="{{ url_for('analysis.index') }}">
+                        <i class="fa-solid fa-calculator me-1"></i> Statistical Analysis
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-bold px-3 py-2 text-nowrap text-secondary bg-light" href="{{ url_for('visualization.index') }}">
+                        <i class="fa-solid fa-chart-pie me-1"></i> Visualizations Studio
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-bold px-3 py-2 text-nowrap active shadow-sm text-dark bg-warning bg-opacity-25 border border-warning" href="{{ url_for('powerbi.index') }}">
+                        <i class="fa-solid fa-chart-column me-1 text-warning"></i> Power BI Desktop
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Top Header Banner -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                <i class="fa-solid fa-chart-pie text-warning"></i> Microsoft Power BI Intelligence Center
+            </h2>
+            <p class="text-muted mb-0 small">
+                Interactive Multi-Dimensional Crime Analytics, DAX Measures, and Enterprise BI Visualization
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('powerbi.download_dataset') }}" class="btn btn-outline-success btn-sm fw-bold">
+                <i class="fa-solid fa-file-excel me-1"></i> Download Power BI Dataset (.xlsx)
+            </a>
+            <button class="btn btn-primary btn-sm fw-bold" onclick="window.print()">
+                <i class="fa-solid fa-print me-1"></i> Print / Save PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Power BI App Frame -->
+    <div class="pbi-app-container">
+        <!-- Power BI Title Ribbon -->
+        <div class="pbi-ribbon">
+            <div class="d-flex align-items-center gap-3">
+                <div class="pbi-logo-badge">
+                    <i class="fa-solid fa-chart-simple"></i> POWER BI
+                </div>
+                <span class="fw-semibold text-white">National Crime Record Analysis & Spatial Forecasting</span>
+                <span class="badge bg-secondary opacity-75 small">v2026.1 - Live Connection</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                {% if embed_url %}
+                <button class="btn btn-outline-warning btn-sm py-1 px-2 text-white" id="toggleEmbedBtn" onclick="toggleEmbedMode()">
+                    <i class="fa-solid fa-up-right-from-square me-1"></i> Switch to Cloud iFrame
+                </button>
+                {% endif %}
+                <button class="btn btn-sm btn-dark text-white-50 border-0" title="Refresh Model" onclick="location.reload()">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+            </div>
+        </div>
+
+        {% if embed_url %}
+        <!-- External Power BI iFrame Mode (If URL configured) -->
+        <div id="pbiIframeSection" style="display: none;">
+            <div class="ratio ratio-16x9">
+                <iframe src="{{ embed_url }}" frameborder="0" allowFullScreen="true"></iframe>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Power BI Embedded Interactive Studio (Native Mode) -->
+        <div id="pbiNativeSection">
+            <!-- Power BI Slicers (Filters) Bar -->
+            <div class="pbi-toolbar">
+                <span class="text-muted small fw-bold me-2"><i class="fa-solid fa-filter me-1 text-primary"></i> POWER BI SLICERS:</span>
+                <form method="GET" action="{{ url_for('powerbi.index') }}" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
+                    <!-- Year Slicer -->
+                    <div class="input-group input-group-sm" style="width: 170px;">
+                        <span class="input-group-text bg-light text-muted">Year</span>
+                        <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="all" {% if not filters.get('year') or filters.get('year') == 'all' %}selected{% endif %}>All Years</option>
+                            {% for y in years %}
+                            <option value="{{ y }}" {% if filters.get('year') == y|string %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- State Slicer -->
+                    <div class="input-group input-group-sm" style="width: 220px;">
+                        <span class="input-group-text bg-light text-muted">State</span>
+                        <select name="state" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="all" {% if not filters.get('state') or filters.get('state') == 'all' %}selected{% endif %}>All States (28)</option>
+                            {% for s in states %}
+                            <option value="{{ s }}" {% if filters.get('state') == s %}selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Crime Type Slicer -->
+                    <div class="input-group input-group-sm" style="width: 230px;">
+                        <span class="input-group-text bg-light text-muted">Crime Type</span>
+                        <select name="crime_type" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="all" {% if not filters.get('crime_type') or filters.get('crime_type') == 'all' %}selected{% endif %}>All Crime Heads</option>
+                            {% for ct in crime_types %}
+                            <option value="{{ ct }}" {% if filters.get('crime_type') == ct %}selected{% endif %}>{{ ct }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="ms-auto d-flex gap-2">
+                        {% if filters.get('year') or filters.get('state') or filters.get('crime_type') %}
+                        <a href="{{ url_for('powerbi.index') }}" class="btn btn-sm btn-outline-danger">
+                            <i class="fa-solid fa-xmark me-1"></i> Clear Slicers
+                        </a>
+                        {% endif %}
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="fa-solid fa-bolt me-1"></i> Apply
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="p-3" style="background-color: #faf9f8;">
+                <!-- Row 1: Power BI KPI Metric Cards (5 Unified Cards) -->
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3 mb-3">
+                    <div class="col">
+                        <div class="pbi-card">
+                            <div class="pbi-card-title">Total Reported Crimes</div>
+                            <div class="pbi-card-value text-primary">{{ "{:,}".format(stats.total_cases | default(0)) }}</div>
+                            <div class="pbi-card-sub"><i class="fa-solid fa-folder-open me-1"></i> Filtered Incidents</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="pbi-card">
+                            <div class="pbi-card-title">Total Convictions</div>
+                            <div class="pbi-card-value text-success">{{ "{:,}".format(stats.total_convictions | default(0)) }}</div>
+                            <div class="pbi-card-sub"><i class="fa-solid fa-gavel me-1"></i> Court Disposals</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="pbi-card">
+                            <div class="pbi-card-title">Conviction Rate</div>
+                            <div class="pbi-card-value text-dark">{{ "%.2f"|format(conviction_rate) }}%</div>
+                            <div class="pbi-card-sub"><i class="fa-solid fa-bullseye text-success me-1"></i> Convictions / Chargesheets</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="pbi-card">
+                            <div class="pbi-card-title">Average Crime Rate</div>
+                            <div class="pbi-card-value text-danger">{{ "%.2f"|format(stats.avg_crime_rate | default(0)) }} <small class="fs-6">/100k</small></div>
+                            <div class="pbi-card-sub"><i class="fa-solid fa-users me-1"></i> Per 100k Population</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="pbi-card">
+                            <div class="pbi-card-title">Total Chargesheeted</div>
+                            <div class="pbi-card-value text-info">{{ "{:,}".format(stats.total_chargesheeted | default(0)) }}</div>
+                            <div class="pbi-card-sub"><i class="fa-solid fa-file-contract me-1"></i> {{ "%.2f"|format(chargesheet_rate) }}% Police Filed</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 2: Charts Grid -->
+                <div class="row g-3 mb-3">
+                    <!-- Visual 1: Crime Category Performance -->
+                    <div class="col-lg-6">
+                        <div class="pbi-visual-box">
+                            <div class="pbi-visual-header">
+                                <h6><i class="fa-solid fa-chart-column text-primary me-2"></i>Crime Category Distribution</h6>
+                                <span class="badge bg-light text-dark border">Power BI Visual</span>
+                            </div>
+                            <div id="chartCrimeType" style="min-height: 340px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Visual 2: Yearly Progression Trend -->
+                    <div class="col-lg-6">
+                        <div class="pbi-visual-box">
+                            <div class="pbi-visual-header">
+                                <h6><i class="fa-solid fa-chart-line text-success me-2"></i>Yearly Trajectory & Incident Growth</h6>
+                                <span class="badge bg-light text-dark border">Power BI Visual</span>
+                            </div>
+                            <div id="chartYearTrend" style="min-height: 340px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 3: Chargesheet/Conviction & State Matrix -->
+                <div class="row g-3 mb-3">
+                    <!-- Visual 3: Chargesheet vs Conviction Comparison -->
+                    <div class="col-lg-6">
+                        <div class="pbi-visual-box">
+                            <div class="pbi-visual-header">
+                                <h6><i class="fa-solid fa-scale-unbalanced-flip text-warning me-2"></i>Chargesheeted vs Convictions Comparison</h6>
+                                <span class="badge bg-light text-dark border">Grouped Stack</span>
+                            </div>
+                            <div id="chartChargesheetConviction" style="min-height: 340px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Visual 4: State Analysis -->
+                    <div class="col-lg-6">
+                        <div class="pbi-visual-box">
+                            <div class="pbi-visual-header">
+                                <h6><i class="fa-solid fa-map-location-dot text-danger me-2"></i>State Incident Density Breakdown</h6>
+                                <span class="badge bg-light text-dark border">Geographic Visual</span>
+                            </div>
+                            <div id="chartState" style="min-height: 340px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 4: Power BI Matrix Table (High-Impact Areas) -->
+                <div class="pbi-visual-box mb-3">
+                    <div class="pbi-visual-header">
+                        <h6><i class="fa-solid fa-table-cells text-dark me-2"></i>Power BI Matrix Data Grid — Priority Incident Records</h6>
+                        <span class="text-muted small">Top Level-3 Jurisdictions</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.88rem;">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>State</th>
+                                    <th>District</th>
+                                    <th>Jurisdiction / Area</th>
+                                    <th class="text-end">Total Cases</th>
+                                    <th class="text-end">Chargesheeted</th>
+                                    <th class="text-end">Convictions</th>
+                                    <th class="text-end">Avg Rate / 100k</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in top_records %}
+                                <tr>
+                                    <td class="fw-bold">{{ r.state }}</td>
+                                    <td>{{ r.district }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ r.area }}</span></td>
+                                    <td class="text-end fw-bold text-danger">{{ "{:,}".format(r.total_cases) }}</td>
+                                    <td class="text-end">{{ "{:,}".format(r.total_chargesheeted) }}</td>
+                                    <td class="text-end text-success fw-semibold">{{ "{:,}".format(r.total_convictions) }}</td>
+                                    <td class="text-end">{{ "%.2f"|format(r.avg_crime_rate) }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">No records found for selected slicer criteria.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Row 5: Examiner Viva / DAX Formulation Cheat Sheet -->
+                <div class="accordion mb-3" id="pbiDaxAccordion">
+                    <div class="accordion-item border rounded-3 overflow-hidden shadow-sm">
+                        <h2 class="accordion-header" id="headingDax">
+                            <button class="accordion-button collapsed fw-bold bg-light text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDax">
+                                <i class="fa-solid fa-graduation-cap text-warning me-2"></i>
+                                <span>Examiner Presentation Reference: Official DAX Measures & Formulas used in Power BI</span>
+                            </button>
+                        </h2>
+                        <div id="collapseDax" class="accordion-collapse collapse" data-bs-parent="#pbiDaxAccordion">
+                            <div class="accordion-body bg-white p-4">
+                                <p class="text-muted small mb-3">
+                                    Examiner ko viva me batane ke liye Power BI me banaye gaye official DAX (Data Analysis Expressions) formulas:
+                                </p>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="p-3 bg-light border rounded">
+                                            <div class="fw-bold text-dark small mb-1">1. Total Crimes Reported Measure</div>
+                                            <div class="dax-code mb-2">Total Crimes = SUM(crime_data[cases_reported])</div>
+                                            <div class="text-muted small">Selected filters (Year, State) ke according total incidents compute karta hai.</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="p-3 bg-light border rounded">
+                                            <div class="fw-bold text-dark small mb-1">2. Conviction Clearance Rate %</div>
+                                            <div class="dax-code mb-2">Conviction Rate % = DIVIDE(SUM(crime_data[convictions]), SUM(crime_data[chargesheeted]), 0) * 100</div>
+                                            <div class="text-muted small">Court trial me case solve hone aur doshi thehrane ki efficiency calculate karta hai.</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="p-3 bg-light border rounded">
+                                            <div class="fw-bold text-dark small mb-1">3. Chargesheet Ratio %</div>
+                                            <div class="dax-code mb-2">Chargesheet Rate = DIVIDE(SUM(crime_data[chargesheeted]), SUM(crime_data[cases_reported]), 0) * 100</div>
+                                            <div class="text-muted small">Police dwara charge-sheet file karne ka investigation performance ratio.</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="p-3 bg-light border rounded">
+                                            <div class="fw-bold text-dark small mb-1">4. Average Crime Rate per 100k</div>
+                                            <div class="dax-code mb-2">Avg Crime Rate = AVERAGE(crime_data[crime_rate_per_100k])</div>
+                                            <div class="text-muted small">National Crime Records Bureau (NCRB) standardized per-capita rate.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 6: 1-Click Desktop Launcher Guide -->
+                <div class="card border-0 shadow-sm rounded-3 p-3 bg-white">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-warning bg-opacity-25 text-warning p-3 rounded-circle">
+                                <i class="fa-solid fa-desktop fs-4 text-dark"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Power BI Desktop (Offline / Local Demonstration)</h6>
+                                <p class="text-muted small mb-0">
+                                    Aapke system me <code>Launch_PowerBI_Dashboard.bat</code> aur <code>data/powerbi_crime_dataset.xlsx</code> ready hai.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('powerbi.download_dataset') }}" class="btn btn-outline-primary btn-sm fw-bold">
+                                <i class="fa-solid fa-download me-1"></i> Save Excel Data
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Power BI Status / Page Tab Bar -->
+            <div class="pbi-tab-bar">
+                <div class="pbi-tab">
+                    <i class="fa-solid fa-file-waveform me-1 text-warning"></i> Page 1: Executive Crime Overview
+                </div>
+                <div class="text-muted small ms-auto d-flex align-items-center gap-3">
+                    <span><i class="fa-solid fa-check text-success me-1"></i> Connected to Project Database</span>
+                    <span>100% Fit to Page</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Render Plotly Visuals with Power BI Theme
+    document.addEventListener("DOMContentLoaded", function() {
+        const config = { responsive: true, displayModeBar: false };
+
+        // Chart 1: Crime Types
+        try {
+            const chartData1 = {{ charts.chart_crime_type | safe }};
+            Plotly.newPlot('chartCrimeType', chartData1.data, chartData1.layout, config);
+        } catch(e) { console.warn(e); }
+
+        // Chart 2: Yearly Trend
+        try {
+            const chartData2 = {{ charts.chart_year | safe }};
+            Plotly.newPlot('chartYearTrend', chartData2.data, chartData2.layout, config);
+        } catch(e) { console.warn(e); }
+
+        // Chart 3: Chargesheet vs Conviction
+        try {
+            const chartData3 = {{ charts.chart_chargesheet_conviction | safe }};
+            Plotly.newPlot('chartChargesheetConviction', chartData3.data, chartData3.layout, config);
+        } catch(e) { console.warn(e); }
+
+        // Chart 4: State Breakdown
+        try {
+            const chartData4 = {{ charts.chart_state | safe }};
+            Plotly.newPlot('chartState', chartData4.data, chartData4.layout, config);
+        } catch(e) { console.warn(e); }
+    });
+
+    function toggleEmbedMode() {
+        const nativeSec = document.getElementById('pbiNativeSection');
+        const iframeSec = document.getElementById('pbiIframeSection');
+        const btn = document.getElementById('toggleEmbedBtn');
+
+        if (iframeSec.style.display === 'none') {
+            iframeSec.style.display = 'block';
+            nativeSec.style.display = 'none';
+            btn.innerHTML = '<i class="fa-solid fa-laptop-code me-1"></i> Switch to Native View';
+        } else {
+            iframeSec.style.display = 'none';
+            nativeSec.style.display = 'block';
+            btn.innerHTML = '<i class="fa-solid fa-up-right-from-square me-1"></i> Switch to Cloud iFrame';
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,450 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manage Geographic Locations - Admin Console{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-danger mb-1"><i class="fa-solid fa-map-location-dot me-2"></i>Geographic Location Hierarchy Management</h2>
+        <p class="text-muted mb-0">Manage 3-Tier Geographic Data: <strong class="text-danger">State &rarr; District &rarr; Level-3 Area</strong></p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#addStateModal">
+            <i class="fa-solid fa-plus me-1"></i> Add State
+        </button>
+        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addDistrictModal">
+            <i class="fa-solid fa-plus me-1"></i> Add District
+        </button>
+        <button class="btn btn-danger btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#addAreaModal">
+            <i class="fa-solid fa-plus me-1"></i> Add Level-3 Area
+        </button>
+    </div>
+</div>
+
+<!-- Tabs Navigation -->
+<ul class="nav nav-pills mb-4 gap-2" id="locationTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-bold px-4 py-2" id="areas-tab" data-bs-toggle="pill" data-bs-target="#areas-pane" type="button" role="tab">
+            <i class="fa-solid fa-location-dot me-1"></i> Level-3 Areas ({{ total_areas_count }})
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold px-4 py-2" id="districts-tab" data-bs-toggle="pill" data-bs-target="#districts-pane" type="button" role="tab">
+            <i class="fa-solid fa-city me-1"></i> Districts ({{ districts|length }})
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold px-4 py-2" id="states-tab" data-bs-toggle="pill" data-bs-target="#states-pane" type="button" role="tab">
+            <i class="fa-solid fa-map me-1"></i> States ({{ states|length }})
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="locationTabsContent">
+    <!-- ================================================================= -->
+    <!-- Tab 1: Level-3 Areas -->
+    <!-- ================================================================= -->
+    <div class="tab-pane fade show active" id="areas-pane" role="tabpanel">
+        <!-- Filter Bar -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-light">
+            <div class="card-body p-3">
+                <form method="GET" action="{{ url_for('admin.locations') }}" class="row g-2 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold mb-1">Filter by State</label>
+                        <select name="state" id="filterState" class="form-select form-select-sm" onchange="onStateChange(this)">
+                            <option value="">All States</option>
+                            {% for s in states %}
+                            <option value="{{ s.state_name }}" {% if selected_state == s.state_name %}selected{% endif %}>{{ s.state_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold mb-1">Filter by District</label>
+                        <select name="district" id="filterDistrict" class="form-select form-select-sm">
+                            <option value="">All Districts</option>
+                            {% for d in districts %}
+                            <option value="{{ d.district_name }}" {% if selected_district == d.district_name %}selected{% endif %}>{{ d.district_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex gap-1">
+                        <button type="submit" class="btn btn-danger btn-sm w-100 fw-bold">Filter</button>
+                        <a href="{{ url_for('admin.locations') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left"></i></a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Area Name (Level-3)</th>
+                            <th>Parent District</th>
+                            <th>Parent State</th>
+                            <th>Jurisdiction Type</th>
+                            <th>Status</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in areas %}
+                        <tr>
+                            <td class="text-muted">#{{ a.id }}</td>
+                            <td class="fw-bold text-danger">{{ a.area_name }}</td>
+                            <td>{{ a.district_name }}</td>
+                            <td>{{ a.state_name }}</td>
+                            <td><small class="text-muted">{{ a.area_type or 'Municipal / Police Jurisdiction' }}</small></td>
+                            <td>
+                                <span class="badge {% if a.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ 'Active' if a.is_active else 'Deactivated' }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-primary me-1" 
+                                        data-id="{{ a.id }}" 
+                                        data-name="{{ a.area_name }}" 
+                                        data-type="{{ a.area_type or '' }}"
+                                        onclick="openEditAreaModal(this)">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <form action="{{ url_for('admin.toggle_area', area_id=a.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm {% if a.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" title="Toggle Active">
+                                        <i class="fa-solid {% if a.is_active %}fa-ban{% else %}fa-check{% endif %}"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">No Level-3 areas match the selected filters.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- Tab 2: Districts -->
+    <!-- ================================================================= -->
+    <div class="tab-pane fade" id="districts-pane" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>District Name</th>
+                            <th>State Name</th>
+                            <th>Historical / Alias</th>
+                            <th>Status</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in districts %}
+                        <tr>
+                            <td class="text-muted">#{{ d.id }}</td>
+                            <td class="fw-bold text-primary">{{ d.district_name }}</td>
+                            <td>{{ d.state_name }}</td>
+                            <td><small class="text-muted">{{ d.historical_name or '—' }}</small></td>
+                            <td>
+                                <span class="badge {% if d.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ 'Active' if d.is_active else 'Deactivated' }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-primary me-1" 
+                                        data-id="{{ d.id }}" 
+                                        data-name="{{ d.district_name }}" 
+                                        data-hist="{{ d.historical_name or '' }}"
+                                        onclick="openEditDistrictModal(this)">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <form action="{{ url_for('admin.toggle_district', district_id=d.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm {% if d.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" title="Toggle Active">
+                                        <i class="fa-solid {% if d.is_active %}fa-ban{% else %}fa-check{% endif %}"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- Tab 3: States -->
+    <!-- ================================================================= -->
+    <div class="tab-pane fade" id="states-pane" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>State Name</th>
+                            <th>State Code</th>
+                            <th>Status</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in states %}
+                        <tr>
+                            <td class="text-muted">#{{ s.id }}</td>
+                            <td class="fw-bold text-dark">{{ s.state_name }}</td>
+                            <td><span class="badge bg-secondary font-monospace">{{ s.state_code }}</span></td>
+                            <td>
+                                <span class="badge {% if s.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ 'Active' if s.is_active else 'Deactivated' }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-primary me-1" 
+                                        data-id="{{ s.id }}" 
+                                        data-name="{{ s.state_name }}" 
+                                        data-code="{{ s.state_code }}"
+                                        onclick="openEditStateModal(this)">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <form action="{{ url_for('admin.toggle_state', state_id=s.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm {% if s.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" title="Toggle Active">
+                                        <i class="fa-solid {% if s.is_active %}fa-ban{% else %}fa-check{% endif %}"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================================================================== -->
+<!-- Modals: Add & Edit -->
+<!-- ===================================================================== -->
+
+<!-- Add State Modal -->
+<div class="modal fade" id="addStateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('admin.add_state') }}" method="POST">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold">Add Geographic State</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">State Name *</label>
+                        <input type="text" name="state_name" class="form-control" placeholder="e.g. Gujarat" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">State Code</label>
+                        <input type="text" name="state_code" class="form-control" placeholder="e.g. GJ" maxlength="5">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger fw-bold">Add State</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit State Modal -->
+<div class="modal fade" id="editStateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editStateForm" method="POST">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold">Edit State</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">State Name *</label>
+                        <input type="text" id="edit_state_name" name="state_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">State Code</label>
+                        <input type="text" id="edit_state_code" name="state_code" class="form-control" maxlength="5">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add District Modal -->
+<div class="modal fade" id="addDistrictModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('admin.add_district') }}" method="POST">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">Add District</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Parent State *</label>
+                        <select name="state_id" class="form-select" required>
+                            <option value="">Select State...</option>
+                            {% for s in states %}
+                            <option value="{{ s.id }}">{{ s.state_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">District Name *</label>
+                        <input type="text" name="district_name" class="form-control" placeholder="e.g. Pune" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Historical Name / Alias (Optional)</label>
+                        <input type="text" name="historical_name" class="form-control" placeholder="e.g. Poona">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Add District</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit District Modal -->
+<div class="modal fade" id="editDistrictModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editDistrictForm" method="POST">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold">Edit District</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">District Name *</label>
+                        <input type="text" id="edit_district_name" name="district_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Historical / Alias</label>
+                        <input type="text" id="edit_district_hist" name="historical_name" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Area Modal -->
+<div class="modal fade" id="addAreaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('admin.add_area') }}" method="POST">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold">Add Level-3 Geographic Area</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Parent District *</label>
+                        <select name="district_id" class="form-select" required>
+                            <option value="">Select District...</option>
+                            {% for d in districts %}
+                            <option value="{{ d.id }}">{{ d.district_name }} ({{ d.state_name }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-danger">Area Name (Level-3) *</label>
+                        <input type="text" name="area_name" class="form-control border-danger" placeholder="e.g. Bandra West, Shivajinagar" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Jurisdiction / Locality Type</label>
+                        <input type="text" name="area_type" class="form-control" value="Police Station Jurisdiction / Municipal Locality">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger fw-bold">Create Level-3 Area</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Area Modal -->
+<div class="modal fade" id="editAreaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editAreaForm" method="POST">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold">Edit Area</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Area Name *</label>
+                        <input type="text" id="edit_area_name" name="area_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Area Type</label>
+                        <input type="text" id="edit_area_type" name="area_type" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+    function openEditStateModal(btn) {
+        const id = btn.dataset.id;
+        document.getElementById('editStateForm').action = "/admin/locations/state/edit/" + id;
+        document.getElementById('edit_state_name').value = btn.dataset.name;
+        document.getElementById('edit_state_code').value = btn.dataset.code;
+        new bootstrap.Modal(document.getElementById('editStateModal')).show();
+    }
+
+    function openEditDistrictModal(btn) {
+        const id = btn.dataset.id;
+        document.getElementById('editDistrictForm').action = "/admin/locations/district/edit/" + id;
+        document.getElementById('edit_district_name').value = btn.dataset.name;
+        document.getElementById('edit_district_hist').value = btn.dataset.hist;
+        new bootstrap.Modal(document.getElementById('editDistrictModal')).show();
+    }
+
+    function openEditAreaModal(btn) {
+        const id = btn.dataset.id;
+        document.getElementById('editAreaForm').action = "/admin/locations/area/edit/" + id;
+        document.getElementById('edit_area_name').value = btn.dataset.name;
+        document.getElementById('edit_area_type').value = btn.dataset.type;
+        new bootstrap.Modal(document.getElementById('editAreaModal')).show();
+    }
+</script>
+{% endblock %}

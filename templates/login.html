@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}User Login - Crime Data Analytics{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center py-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="card-header bg-dark text-white text-center py-4 border-0">
+                <i class="fa-solid fa-user-lock fs-1 text-primary mb-2"></i>
+                <h4 class="fw-bold mb-0">Account Login</h4>
+                <small class="text-muted">Enter your credentials to access the analytics portal</small>
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ url_for('auth.login') }}" method="POST" id="loginForm">
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-bold">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ email or '' }}" placeholder="name@example.com" required {% if not email %}autofocus{% endif %}>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label fw-bold">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required {% if email %}autofocus{% endif %}>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check d-flex justify-content-between align-items-center">
+                        <div>
+                            <input type="checkbox" class="form-check-input" id="remember" name="remember" checked>
+                            <label class="form-check-label small" for="remember">Remember me</label>
+                        </div>
+                        <a href="{{ url_for('auth.forgot_password') }}" class="small fw-bold text-decoration-none">Forgot Password?</a>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm mb-3">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i> Sign In
+                    </button>
+                </form>
+            </div>
+            <div class="card-footer bg-light text-center py-3 border-0">
+                <span class="small text-muted">Don't have an account? </span>
+                <a href="{{ url_for('auth.register') }}" class="small fw-bold text-primary">Register Here</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,224 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Admin Console Overview - Crime Data Analytics{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-danger mb-1"><i class="fa-solid fa-shield-halved me-2"></i>Administrator Control Center</h2>
+        <p class="text-muted mb-0">System metrics, data pipelines, Level-3 location management &amp; security logs</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.crime_data') }}" class="btn btn-danger btn-sm fw-bold">
+            <i class="fa-solid fa-database me-1"></i> Manage Crime Data
+        </a>
+        <a href="{{ url_for('admin.locations') }}" class="btn btn-outline-danger btn-sm">
+            <i class="fa-solid fa-map-location-dot me-1"></i> Manage Locations
+        </a>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-users me-1"></i> Manage Users
+        </a>
+    </div>
+</div>
+
+<!-- Real KPI Metrics Grid -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-danger border-4">
+            <small class="text-muted fw-bold text-uppercase fs-8">Crime Records</small>
+            <h3 class="fw-bold text-danger mb-0 mt-1">{{ "{:,}".format(stats.total_records if stats else 0) }}</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-warning border-4">
+            <small class="text-muted fw-bold text-uppercase fs-8">Total Users</small>
+            <h3 class="fw-bold text-dark mb-0 mt-1">{{ users_count }}</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-primary border-4">
+            <small class="text-muted fw-bold text-uppercase fs-8">States Covered</small>
+            <h3 class="fw-bold text-primary mb-0 mt-1">{{ stats.total_states if stats else 0 }}</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-info border-4">
+            <small class="text-muted fw-bold text-uppercase fs-8">Districts</small>
+            <h3 class="fw-bold text-info mb-0 mt-1">{{ stats.total_districts if stats else 0 }}</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-success border-4">
+            <small class="text-muted fw-bold text-uppercase fs-8">Level-3 Areas</small>
+            <h3 class="fw-bold text-success mb-0 mt-1">{{ stats.total_areas if stats else 0 }}</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-dark border-4">
+            <small class="text-muted fw-bold text-uppercase fs-8">Total Cases</small>
+            <h3 class="fw-bold text-dark mb-0 mt-1">{{ "{:,}".format(stats.total_cases if stats else 0) }}</h3>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Recent Data Updates -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden bg-white">
+            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-clock-rotate-left text-danger me-2"></i>Recent Crime Data Records</h5>
+                <a href="{{ url_for('admin.crime_data') }}" class="btn btn-sm btn-outline-danger">View All Data &rarr;</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Area &amp; District</th>
+                            <th>Crime Type</th>
+                            <th>Cases</th>
+                            <th>Year</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in recent_records %}
+                        <tr>
+                            <td class="text-muted">#{{ r.id }}</td>
+                            <td>
+                                <strong class="text-danger">{{ r.area }}</strong>
+                                <small class="text-muted d-block">{{ r.district }}, {{ r.state }}</small>
+                            </td>
+                            <td><span class="badge bg-info text-dark">{{ r.crime_type }}</span></td>
+                            <td class="fw-bold">{{ "{:,}".format(r.cases_reported) }}</td>
+                            <td><span class="badge bg-secondary">{{ r.year }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent User Registrations -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden bg-white">
+            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-user-plus text-primary me-2"></i>Recent User Registrations</h5>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-outline-primary">Manage Users &rarr;</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>User</th>
+                            <th>Email Address</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Registered</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in recent_users %}
+                        <tr>
+                            <td class="fw-bold">{{ u.name }}</td>
+                            <td>{{ u.email }}</td>
+                            <td>
+                                <span class="badge {% if u.role == 'ADMIN' %}bg-danger{% else %}bg-primary{% endif %}">
+                                    {{ u.role }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {% if u.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ 'Active' if u.is_active else 'Deactivated' }}
+                                </span>
+                            </td>
+                            <td class="small text-muted">{{ u.created_at or 'N/A' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity / Audit Log -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden bg-white">
+    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-shield text-danger me-2"></i>Recent Administrative Activity &amp; Audit Trail</h5>
+        <a href="{{ url_for('admin.audit') }}" class="btn btn-sm btn-outline-secondary">Full Audit Trail &rarr;</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Operator</th>
+                    <th>Details</th>
+                    <th>Client IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_logs %}
+                <tr>
+                    <td class="small text-muted">{{ log.created_at }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if 'Delete' in log.action %}bg-danger
+                            {% elif 'Add' in log.action or 'Import' in log.action %}bg-success
+                            {% elif 'Edit' in log.action or 'Role' in log.action %}bg-warning text-dark
+                            {% elif 'Login' in log.action %}bg-primary
+                            {% else %}bg-secondary{% endif %}">
+                            {{ log.action }}
+                        </span>
+                    </td>
+                    <td class="fw-bold">{{ log.user_name }}</td>
+                    <td><small>{{ log.details }}</small></td>
+                    <td><span class="badge bg-light text-dark border font-monospace">{{ log.ip_address }}</span></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center py-3 text-muted">No recent administrative logs found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- System Platform Diagnostics -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+    <div class="card-header bg-white py-3 border-0">
+        <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-server text-secondary me-2"></i>Host Environment &amp; Engine Diagnostics</h6>
+    </div>
+    <div class="card-body p-4 pt-2">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="p-3 bg-light rounded border text-center">
+                    <small class="text-muted d-block">Python Runtime</small>
+                    <strong class="text-dark">v{{ python_version }}</strong>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 bg-light rounded border text-center">
+                    <small class="text-muted d-block">Database Engine</small>
+                    <strong class="text-uppercase text-danger">{{ db_type }}</strong>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 bg-light rounded border text-center">
+                    <small class="text-muted d-block">Security Layer</small>
+                    <strong class="text-success">RBAC + Werkzeug 256</strong>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 bg-light rounded border text-center">
+                    <small class="text-muted d-block">Geographic Architecture</small>
+                    <strong class="text-primary">3-Tier Normalized</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

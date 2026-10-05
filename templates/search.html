@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Search & Filter - Crime Data Analytics{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-primary mb-1"><i class="fa-solid fa-magnifying-glass me-2"></i>Advanced Multi-Filter & Area Search</h2>
+        <p class="text-muted mb-0">Search across State, District, and specific Areas with partial string matching</p>
+    </div>
+</div>
+
+<!-- Search Panel -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 bg-light">
+    <div class="card-body p-4">
+        <form method="GET" action="{{ url_for('search.index') }}" id="searchForm">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold"><i class="fa-solid fa-flag me-1 text-primary"></i>State</label>
+                    <select name="state" id="filterState" class="form-select border-primary" onchange="onStateChange(this)">
+                        <option value="">All States</option>
+                        {% for st in states %}
+                        <option value="{{ st }}" {% if filters.state == st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold"><i class="fa-solid fa-map-location-dot me-1 text-primary"></i>District</label>
+                    <select name="district" id="filterDistrict" class="form-select border-primary" onchange="onDistrictChange(this)">
+                        <option value="">All Districts</option>
+                        {% for dt in districts %}
+                        <option value="{{ dt }}" {% if filters.district == dt %}selected{% endif %}>{{ dt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-primary"><i class="fa-solid fa-location-crosshairs me-1"></i>Area (Level-3)</label>
+                    <select name="area" id="filterArea" class="form-select border-primary">
+                        <option value="">All Areas</option>
+                        {% for ar in areas %}
+                        <option value="{{ ar }}" {% if filters.area == ar %}selected{% endif %}>{{ ar }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Crime Type</label>
+                    <select name="crime_type" class="form-select">
+                        <option value="">All Crime Types</option>
+                        {% for ct in crime_types %}
+                        <option value="{{ ct }}" {% if filters.crime_type == ct %}selected{% endif %}>{{ ct }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Year</label>
+                    <select name="year" class="form-select">
+                        <option value="">All Years</option>
+                        {% for yr in years %}
+                        <option value="{{ yr }}" {% if filters.year == (yr|string) %}selected{% endif %}>{{ yr }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Min Cases Reported</label>
+                    <input type="number" name="min_cases" class="form-control" placeholder="0" value="{{ filters.min_cases or '' }}">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Max Cases Reported</label>
+                    <input type="number" name="max_cases" class="form-control" placeholder="e.g. 500" value="{{ filters.max_cases or '' }}">
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{{ url_for('search.index') }}" class="btn btn-outline-secondary px-4">
+                    <i class="fa-solid fa-rotate-left me-1"></i> Reset Filters
+                </a>
+                <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
+                    <i class="fa-solid fa-magnifying-glass me-1"></i> Search Records
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Search Results Summary Cards -->
+{% if summary %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 text-center">
+            <small class="text-muted fw-bold">Matching Records</small>
+            <h4 class="fw-bold text-primary mb-0">{{ summary.total_records }}</h4>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 text-center">
+            <small class="text-muted fw-bold">Total Cases</small>
+            <h4 class="fw-bold text-dark mb-0">{{ "{:,}".format(summary.total_cases) }}</h4>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 text-center">
+            <small class="text-muted fw-bold">Total Chargesheeted</small>
+            <h4 class="fw-bold text-warning mb-0">{{ "{:,}".format(summary.total_chargesheeted) }}</h4>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 text-center">
+            <small class="text-muted fw-bold">Total Convictions</small>
+            <h4 class="fw-bold text-success mb-0">{{ "{:,}".format(summary.total_convictions) }}</h4>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Results Table -->
+{% if filters %}
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-dark">Search Query Results ({{ results|length }} records)</h5>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('crime.export_csv', state=filters.get('state',''), district=filters.get('district',''), area=filters.get('area',''), year=filters.get('year',''), crime_type=filters.get('crime_type','')) }}" class="btn btn-outline-success btn-sm">
+                <i class="fa-solid fa-file-csv me-1"></i> Export CSV
+            </a>
+            <a href="{{ url_for('reports.index', state=filters.get('state',''), district=filters.get('district',''), area=filters.get('area',''), year=filters.get('year','')) }}" class="btn btn-outline-primary btn-sm">
+                <i class="fa-solid fa-file-pdf me-1"></i> Generate Report
+            </a>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>State</th>
+                    <th>District</th>
+                    <th>Area (Level-3)</th>
+                    <th>Year</th>
+                    <th>Crime Type</th>
+                    <th>Cases</th>
+                    <th>Chargesheeted</th>
+                    <th>Convictions</th>
+                    <th>Crime Rate / 100k</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in results %}
+                <tr>
+                    <td class="text-muted">#{{ r.id }}</td>
+                    <td>{{ r.state }}</td>
+                    <td>{{ r.district }}</td>
+                    <td class="fw-bold text-primary">{{ r.area }}</td>
+                    <td><span class="badge bg-secondary">{{ r.year }}</span></td>
+                    <td><span class="badge bg-info text-dark">{{ r.crime_type }}</span></td>
+                    <td class="fw-bold">{{ "{:,}".format(r.cases_reported) }}</td>
+                    <td>{{ "{:,}".format(r.chargesheeted) }}</td>
+                    <td>{{ "{:,}".format(r.convictions) }}</td>
+                    <td><span class="badge bg-danger">{{ "%.2f"|format(r.crime_rate_per_100k) }}</span></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="text-center py-4 text-muted">No records match the specified search parameters.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

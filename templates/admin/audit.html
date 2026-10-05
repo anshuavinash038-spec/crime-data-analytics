@@ -1,0 +1,91 @@
+{% extends "admin/base.html" %}
+
+{% block title %}System Activity &amp; Audit Logs - Admin Console{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-danger mb-1"><i class="fa-solid fa-clipboard-list me-2"></i>Security &amp; Activity Audit Logs</h2>
+        <p class="text-muted mb-0">Immutable tracking of administrative events, data modifications &amp; authentication logs</p>
+    </div>
+    <div>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i> Admin Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 bg-light">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('admin.audit') }}" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label small fw-bold mb-1">Filter by Action Type</label>
+                <select name="action" class="form-select form-select-sm">
+                    <option value="">All Actions</option>
+                    <option value="Admin Login" {% if action_filter == 'Admin Login' %}selected{% endif %}>Admin Login</option>
+                    <option value="User Login" {% if action_filter == 'User Login' %}selected{% endif %}>User Login</option>
+                    <option value="Add Crime Record" {% if action_filter == 'Add Crime Record' %}selected{% endif %}>Add Crime Record</option>
+                    <option value="Edit Crime Record" {% if action_filter == 'Edit Crime Record' %}selected{% endif %}>Edit Crime Record</option>
+                    <option value="Delete Crime Record" {% if action_filter == 'Delete Crime Record' %}selected{% endif %}>Delete Crime Record</option>
+                    <option value="CSV Data Import" {% if action_filter == 'CSV Data Import' %}selected{% endif %}>CSV Data Import</option>
+                    <option value="Toggle User Status" {% if action_filter == 'Toggle User Status' %}selected{% endif %}>Toggle User Status</option>
+                    <option value="Change User Role" {% if action_filter == 'Change User Role' %}selected{% endif %}>Change User Role</option>
+                    <option value="Add State" {% if action_filter == 'Add State' %}selected{% endif %}>Add State</option>
+                    <option value="Add District" {% if action_filter == 'Add District' %}selected{% endif %}>Add District</option>
+                    <option value="Add Area" {% if action_filter == 'Add Area' %}selected{% endif %}>Add Area</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-danger btn-sm w-100 fw-bold">Filter</button>
+                <a href="{{ url_for('admin.audit') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Audit Log Table -->
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Log ID</th>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Operator</th>
+                    <th>Operator Email</th>
+                    <th>Details</th>
+                    <th>Client IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td class="text-muted">#{{ log.id }}</td>
+                    <td class="small">{{ log.created_at }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if 'Delete' in log.action %}bg-danger
+                            {% elif 'Add' in log.action or 'Import' in log.action %}bg-success
+                            {% elif 'Edit' in log.action or 'Role' in log.action %}bg-warning text-dark
+                            {% elif 'Login' in log.action %}bg-primary
+                            {% else %}bg-secondary{% endif %} px-2 py-1">
+                            {{ log.action }}
+                        </span>
+                    </td>
+                    <td class="fw-bold">{{ log.user_name or 'System' }}</td>
+                    <td class="small text-muted">{{ log.user_email or '—' }}</td>
+                    <td><small class="text-dark">{{ log.details or '—' }}</small></td>
+                    <td><span class="badge bg-light text-dark border font-monospace">{{ log.ip_address or '127.0.0.1' }}</span></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">No audit logs recorded for this criteria.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Access Denied (403) - Crime Data Analytics{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center py-5">
+    <div class="col-md-7 col-lg-6 text-center">
+        <div class="card border-0 shadow-lg rounded-4 p-5 bg-white">
+            <div class="mb-4">
+                <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-4 d-inline-block">
+                    <i class="fa-solid fa-ban fs-1"></i>
+                </div>
+            </div>
+            <h1 class="display-5 fw-bold text-danger mb-2">403 Forbidden</h1>
+            <h4 class="fw-bold text-dark mb-3">Administrator Privileges Required</h4>
+            <p class="text-muted mb-4 lead">
+                You do not have administrative clearance to access this resource. 
+                This section is strictly restricted to system administrators with role <code>ADMIN</code>.
+            </p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary px-4 fw-bold">
+                    <i class="fa-solid fa-gauge-high me-2"></i> Return to Dashboard
+                </a>
+                <a href="{{ url_for('dashboard.home') }}" class="btn btn-outline-secondary px-4 fw-bold">
+                    <i class="fa-solid fa-house me-2"></i> Home Page
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

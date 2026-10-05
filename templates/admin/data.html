@@ -1,0 +1,314 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manage Crime Data - Admin Console{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-danger mb-1"><i class="fa-solid fa-database me-2"></i>Crime Data Management Console</h2>
+        <p class="text-muted mb-0">Authorized Administrator CRUD &amp; Data Pipeline Operations</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.export_csv') }}" class="btn btn-outline-success btn-sm">
+            <i class="fa-solid fa-file-csv me-1"></i> Export Dataset
+        </a>
+        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importCsvModal">
+            <i class="fa-solid fa-file-import me-1"></i> Mass CSV Import
+        </button>
+        <button class="btn btn-danger btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#addRecordModal">
+            <i class="fa-solid fa-plus me-1"></i> Add Record
+        </button>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 bg-light">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('admin.crime_data') }}" class="row g-2 align-items-end" id="filterForm">
+            <div class="col-md-2">
+                <label class="form-label small fw-bold mb-1">State</label>
+                <select name="state" id="filterState" class="form-select form-select-sm" onchange="onStateChange(this)">
+                    <option value="">All States</option>
+                    {% for st in states %}
+                    <option value="{{ st }}" {% if filters.state == st %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold mb-1">District</label>
+                <select name="district" id="filterDistrict" class="form-select form-select-sm" onchange="onDistrictChange(this)">
+                    <option value="">All Districts</option>
+                    {% for dt in districts %}
+                    <option value="{{ dt }}" {% if filters.district == dt %}selected{% endif %}>{{ dt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold mb-1">Area</label>
+                <select name="area" id="filterArea" class="form-select form-select-sm">
+                    <option value="">All Areas</option>
+                    {% for ar in areas %}
+                    <option value="{{ ar }}" {% if filters.area == ar %}selected{% endif %}>{{ ar }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold mb-1">Year</label>
+                <select name="year" class="form-select form-select-sm">
+                    <option value="">All Years</option>
+                    {% for yr in years %}
+                    <option value="{{ yr }}" {% if filters.year == (yr|string) %}selected{% endif %}>{{ yr }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold mb-1">Crime Type</label>
+                <select name="crime_type" class="form-select form-select-sm">
+                    <option value="">All Crime Types</option>
+                    {% for ct in crime_types %}
+                    <option value="{{ ct }}" {% if filters.crime_type == ct %}selected{% endif %}>{{ ct }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-danger btn-sm w-100 fw-bold">Apply Filter</button>
+                <a href="{{ url_for('admin.crime_data') }}" class="btn btn-outline-secondary btn-sm" title="Reset"><i class="fa-solid fa-rotate-left"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Records Table -->
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-table-list text-danger me-2"></i>Crime Records Database (Showing {{ records|length }} Records)</h5>
+        <span class="badge bg-danger">Level-3 Hierarchy Validated</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>State</th>
+                    <th>District</th>
+                    <th>Area (Level-3)</th>
+                    <th>Year</th>
+                    <th>Crime Type</th>
+                    <th>Cases</th>
+                    <th>Chargesheeted</th>
+                    <th>Convictions</th>
+                    <th>Population</th>
+                    <th>Crime Rate</th>
+                    <th class="text-center">Admin Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in records %}
+                <tr>
+                    <td class="text-muted">#{{ r.id }}</td>
+                    <td>{{ r.state }}</td>
+                    <td>{{ r.district }}</td>
+                    <td class="fw-bold text-danger">{{ r.area }}</td>
+                    <td><span class="badge bg-secondary">{{ r.year }}</span></td>
+                    <td><span class="badge bg-info text-dark">{{ r.crime_type }}</span></td>
+                    <td class="fw-bold">{{ "{:,}".format(r.cases_reported) }}</td>
+                    <td>{{ "{:,}".format(r.chargesheeted) }}</td>
+                    <td>{{ "{:,}".format(r.convictions) }}</td>
+                    <td class="small text-muted">{{ "{:,}".format(r.population) }}</td>
+                    <td><span class="badge bg-danger">{{ "%.2f"|format(r.crime_rate_per_100k) }}</span></td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                data-id="{{ r.id }}"
+                                data-state="{{ r.state }}"
+                                data-district="{{ r.district }}"
+                                data-area="{{ r.area }}"
+                                data-year="{{ r.year }}"
+                                data-crime-type="{{ r.crime_type }}"
+                                data-cases="{{ r.cases_reported }}"
+                                data-chargesheeted="{{ r.chargesheeted }}"
+                                data-convictions="{{ r.convictions }}"
+                                data-population="{{ r.population }}"
+                                onclick="openEditFromButton(this)"
+                                title="Edit Record">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <form action="{{ url_for('admin.delete_crime_data', record_id=r.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Security Confirmation: Delete crime record ID #{{ r.id }} for Area \'{{ r.area }}\'? This action will be recorded in the audit log.');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Record">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="12" class="text-center py-4 text-muted">No crime records match the selected filters.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Record Modal -->
+<div class="modal fade" id="addRecordModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{{ url_for('admin.add_crime_data') }}" method="POST">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-plus-circle me-2"></i>Add Crime Record</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">State *</label>
+                            <input type="text" name="state" class="form-control" placeholder="e.g. Maharashtra" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">District *</label>
+                            <input type="text" name="district" class="form-control" placeholder="e.g. Mumbai Suburban" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-danger">Area (Level-3) *</label>
+                            <input type="text" name="area" class="form-control border-danger" placeholder="e.g. Andheri" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Year *</label>
+                            <input type="number" name="year" class="form-control" value="2025" min="2000" max="2035" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Crime Type *</label>
+                            <input type="text" name="crime_type" class="form-control" placeholder="e.g. Theft, Cyber Crime" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Cases Reported *</label>
+                            <input type="number" name="cases_reported" class="form-control" value="0" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Chargesheeted</label>
+                            <input type="number" name="chargesheeted" class="form-control" value="0" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Convictions</label>
+                            <input type="number" name="convictions" class="form-control" value="0" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Population</label>
+                            <input type="number" name="population" class="form-control" value="100000" min="1000">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger fw-bold">Save New Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Record Modal -->
+<div class="modal fade" id="editRecordModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="editRecordForm" method="POST">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen text-warning me-2"></i>Edit Crime Record</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">State *</label>
+                            <input type="text" id="edit_state" name="state" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">District *</label>
+                            <input type="text" id="edit_district" name="district" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-danger">Area (Level-3) *</label>
+                            <input type="text" id="edit_area" name="area" class="form-control border-danger" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Year *</label>
+                            <input type="number" id="edit_year" name="year" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Crime Type *</label>
+                            <input type="text" id="edit_crime_type" name="crime_type" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Cases Reported *</label>
+                            <input type="number" id="edit_cases" name="cases_reported" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Chargesheeted</label>
+                            <input type="number" id="edit_chargesheeted" name="chargesheeted" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Convictions</label>
+                            <input type="number" id="edit_convictions" name="convictions" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Population</label>
+                            <input type="number" id="edit_population" name="population" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success fw-bold">Update Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- CSV Import Modal -->
+<div class="modal fade" id="importCsvModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('admin.import_csv') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-import me-2 text-primary"></i>Mass CSV Data Pipeline</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">CSV must include columns: <code>State, District, Area, Year, Crime_Type, Cases_Reported, Chargesheeted, Convictions, Population</code></p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select CSV File</label>
+                        <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Upload &amp; Batch Process</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+    function openEditFromButton(btn) {
+        const ds = btn.dataset;
+        document.getElementById('editRecordForm').action = "/admin/data/edit/" + ds.id;
+        document.getElementById('edit_state').value = ds.state || '';
+        document.getElementById('edit_district').value = ds.district || '';
+        document.getElementById('edit_area').value = ds.area || '';
+        document.getElementById('edit_year').value = ds.year || '';
+        document.getElementById('edit_crime_type').value = ds.crimeType || '';
+        document.getElementById('edit_cases').value = ds.cases || '0';
+        document.getElementById('edit_chargesheeted').value = ds.chargesheeted || '0';
+        document.getElementById('edit_convictions').value = ds.convictions || '0';
+        document.getElementById('edit_population').value = ds.population || '100000';
+
+        const editModal = new bootstrap.Modal(document.getElementById('editRecordModal'));
+        editModal.show();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}404 Page Not Found - Crime Data Analytics{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center py-5 text-center">
+    <div class="col-md-6">
+        <h1 class="display-1 fw-bold text-danger">404</h1>
+        <h3 class="fw-bold text-dark mb-3">Page Not Found</h3>
+        <p class="text-muted mb-4">The requested route or resource does not exist in the Crime Data Analytics platform.</p>
+        <a href="{{ url_for('dashboard.home') }}" class="btn btn-primary px-4 fw-bold">
+            <i class="fa-solid fa-house me-2"></i> Return to Home Page
+        </a>
+    </div>
+</div>
+{% endblock %}

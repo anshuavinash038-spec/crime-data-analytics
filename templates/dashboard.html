@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}Interactive Dashboard - Crime Data Analytics{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-primary mb-1"><i class="fa-solid fa-gauge-high me-2"></i>Interactive Crime Dashboard</h2>
+        <p class="text-muted mb-0">Real-time analytical metrics, dynamic area ranking & Plotly visualization charts</p>
+    </div>
+    <div>
+        <a href="{{ url_for('crime.index') }}" class="btn btn-outline-secondary btn-sm me-2">
+            <i class="fa-solid fa-table-list me-1"></i> View Crime Data
+        </a>
+        <a href="{{ url_for('reports.index') }}" class="btn btn-outline-primary btn-sm">
+            <i class="fa-solid fa-file-export me-1"></i> Generate Report
+        </a>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 bg-light">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('dashboard.index') }}" class="row g-2 align-items-end" id="filterForm">
+            <div class="col-md-2">
+                <label class="form-label small fw-bold mb-1">State</label>
+                <select name="state" id="filterState" class="form-select form-select-sm" onchange="onStateChange(this)">
+                    <option value="">All States</option>
+                    {% for st in states %}
+                    <option value="{{ st }}" {% if filters.state == st %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label small fw-bold mb-1">District</label>
+                <select name="district" id="filterDistrict" class="form-select form-select-sm" onchange="onDistrictChange(this)">
+                    <option value="">All Districts</option>
+                    {% for dt in districts %}
+                    <option value="{{ dt }}" {% if filters.district == dt %}selected{% endif %}>{{ dt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label small fw-bold mb-1">Area</label>
+                <select name="area" id="filterArea" class="form-select form-select-sm">
+                    <option value="">All Areas</option>
+                    {% for ar in areas %}
+                    <option value="{{ ar }}" {% if filters.area == ar %}selected{% endif %}>{{ ar }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label small fw-bold mb-1">Year</label>
+                <select name="year" class="form-select form-select-sm">
+                    <option value="">All Years</option>
+                    {% for yr in years %}
+                    <option value="{{ yr }}" {% if filters.year == (yr|string) %}selected{% endif %}>{{ yr }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label small fw-bold mb-1">Crime Type</label>
+                <select name="crime_type" class="form-select form-select-sm">
+                    <option value="">All Crime Types</option>
+                    {% for ct in crime_types %}
+                    <option value="{{ ct }}" {% if filters.crime_type == ct %}selected{% endif %}>{{ ct }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
+                    <i class="fa-solid fa-filter me-1"></i> Apply
+                </button>
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm" title="Reset Filters">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if filters and (filters.state or filters.district or filters.area) and (stats and stats.total_cases == 0) %}
+<div class="alert alert-info border-0 shadow-sm rounded-4 mb-4 p-3 d-flex align-items-center gap-3" style="background: rgba(13, 202, 240, 0.1); border-left: 4px solid #0dcaf2 !important;">
+    <i class="fa-solid fa-circle-info fs-3 text-info"></i>
+    <div>
+        <h6 class="fw-bold text-dark mb-1">Notice: Zero Reported Incidents for Selected Sub-District</h6>
+        <span class="small text-secondary">
+            <strong>{{ filters.state or 'Selected State' }}</strong> {% if filters.district %} &gt; <strong>{{ filters.district }}</strong>{% endif %}{% if filters.area %} &gt; <strong>{{ filters.area }}</strong>{% endif %} is an official administrative jurisdiction under Local Government Directory (LGD) mapping. Incident logs for this specific sub-district are either zero or consolidated within the parent District Crime Records Bureau (DCRB).
+        </span>
+    </div>
+</div>
+{% endif %}
+
+<!-- KPI Cards Grid -->
+<!-- 5 Unified Power BI KPI Cards Grid -->
+{% if stats %}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3 mb-4">
+    <!-- 1. Total Reported Crimes -->
+    <div class="col">
+        <div class="card border-0 shadow-sm rounded-4 bg-primary bg-gradient text-white h-100 p-3">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="text-uppercase small mb-1 opacity-75 fw-semibold">Total Reported Crimes</h6>
+                    <h3 class="fw-bold mb-1">{{ "{:,}".format(stats.total_cases if stats.total_cases else 0) }}</h3>
+                    <small class="opacity-75"><i class="fa-solid fa-folder-open me-1"></i> Filtered Incidents</small>
+                </div>
+                <div class="p-2 bg-white bg-opacity-25 rounded-circle">
+                    <i class="fa-solid fa-shield-halved fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Total Convictions -->
+    <div class="col">
+        <div class="card border-0 shadow-sm rounded-4 bg-success bg-gradient text-white h-100 p-3">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="text-uppercase small mb-1 opacity-75 fw-semibold">Total Convictions</h6>
+                    <h3 class="fw-bold mb-1">{{ "{:,}".format(stats.total_convictions if stats.total_convictions else 0) }}</h3>
+                    <small class="opacity-75"><i class="fa-solid fa-gavel me-1"></i> Court Disposals</small>
+                </div>
+                <div class="p-2 bg-white bg-opacity-25 rounded-circle">
+                    <i class="fa-solid fa-scale-balanced fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Conviction Rate -->
+    <div class="col">
+        <div class="card border-0 shadow-sm rounded-4 text-white h-100 p-3" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="text-uppercase small mb-1 opacity-75 fw-semibold">Conviction Rate</h6>
+                    <h3 class="fw-bold mb-1">{{ "%.2f"|format(stats.conviction_rate) if stats.conviction_rate else "0.00" }}%</h3>
+                    <small class="opacity-75"><i class="fa-solid fa-bullseye me-1"></i> Convictions / Chargesheets</small>
+                </div>
+                <div class="p-2 bg-white bg-opacity-25 rounded-circle">
+                    <i class="fa-solid fa-percent fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Average Crime Rate -->
+    <div class="col">
+        <div class="card border-0 shadow-sm rounded-4 bg-danger bg-gradient text-white h-100 p-3">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="text-uppercase small mb-1 opacity-75 fw-semibold">Average Crime Rate</h6>
+                    <h3 class="fw-bold mb-1">{{ "%.2f"|format(stats.avg_crime_rate) if stats.avg_crime_rate else "0.00" }} <small class="fs-6">/100k</small></h3>
+                    <small class="opacity-75"><i class="fa-solid fa-users me-1"></i> Per 100k Population</small>
+                </div>
+                <div class="p-2 bg-white bg-opacity-25 rounded-circle">
+                    <i class="fa-solid fa-chart-line fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Total Chargesheeted -->
+    <div class="col">
+        <div class="card border-0 shadow-sm rounded-4 bg-warning bg-gradient text-dark h-100 p-3">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="text-uppercase small mb-1 opacity-75 fw-semibold">Total Chargesheeted</h6>
+                    <h3 class="fw-bold mb-1">{{ "{:,}".format(stats.total_chargesheeted if stats.total_chargesheeted else 0) }}</h3>
+                    <small class="opacity-75"><i class="fa-solid fa-file-contract me-1"></i> {{ "%.2f"|format(stats.chargesheet_rate) if stats.chargesheet_rate else "0.00" }}% Police Filed</small>
+                </div>
+                <div class="p-2 bg-dark bg-opacity-10 rounded-circle">
+                    <i class="fa-solid fa-clipboard-check fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-md-2-4">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 text-center border-start border-primary border-3">
+            <small class="text-muted fw-bold">States in Master</small>
+            <h4 class="fw-bold text-dark mb-0">{{ geo_stats.master_states_count if geo_stats else 28 }} <small class="fs-7 text-muted">({{ stats.total_states if stats else 28 }} in filter)</small></h4>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-md-2-4">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 text-center border-start border-info border-3">
+            <small class="text-muted fw-bold">Districts in Master</small>
+            <h4 class="fw-bold text-dark mb-0">{{ geo_stats.master_districts_count if geo_stats else 217 }} <small class="fs-7 text-muted">({{ stats.total_districts if stats else 217 }} in filter)</small></h4>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-md-2-4">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 text-center border-start border-success border-3">
+            <small class="text-muted fw-bold">Sub-Districts in Master</small>
+            <h4 class="fw-bold text-dark mb-0">{{ geo_stats.master_areas_count if geo_stats else 1208 }} <small class="fs-7 text-muted">({{ stats.total_areas if stats else 1203 }} in filter)</small></h4>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-md-2-4">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 text-center border-start border-danger border-3">
+            <small class="text-muted fw-bold">Crime Categories</small>
+            <h4 class="fw-bold text-dark mb-0">{{ stats.total_crime_types if stats.total_crime_types else 12 }}</h4>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-md-2-4">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 text-center border-start border-warning border-3">
+            <small class="text-muted fw-bold">Years Scope</small>
+            <h4 class="fw-bold text-dark mb-0">5 Years <small class="fs-7 text-muted">({{ stats.min_year or 2021 }}–{{ stats.max_year or 2025 }})</small></h4>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Key Crime Trends & Statistical Findings -->
+{% if insights %}
+<div class="card border-0 shadow-sm rounded-4 mb-4 bg-white border-start border-primary border-5">
+    <div class="card-body p-4">
+        <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-file-lines text-primary me-2"></i>Key Crime Trends & Analytical Findings</h5>
+        <ul class="list-group list-group-flush mb-0">
+            {% for item in insights %}
+            <li class="list-group-item bg-transparent border-0 px-0 py-1 text-secondary">
+                <i class="fa-solid fa-angle-right text-warning me-2"></i>{{ item }}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+<!-- Plotly Interactive Charts Grid -->
+<div class="row g-4 mb-4">
+    <div class="col-md-7">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white py-2 border-0">
+                <h6 class="fw-bold mb-0 text-primary"><i class="fa-solid fa-chart-line me-2"></i>Yearly Crime Trend</h6>
+            </div>
+            <div class="card-body p-2">
+                <div id="chartYear" style="min-height:360px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white py-2 border-0">
+                <h6 class="fw-bold mb-0 text-success"><i class="fa-solid fa-chart-pie me-2"></i>Crime Type Distribution</h6>
+            </div>
+            <div class="card-body p-2">
+                <div id="chartCrimeType" style="min-height:390px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white py-2 border-0">
+                <h6 class="fw-bold mb-0 text-danger"><i class="fa-solid fa-map me-2"></i>Crime by State</h6>
+            </div>
+            <div class="card-body p-2">
+                <div id="chartState" style="min-height:380px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white py-2 border-0">
+                <h6 class="fw-bold mb-0 text-info"><i class="fa-solid fa-city me-2"></i>Top 15 Districts</h6>
+            </div>
+            <div class="card-body p-2">
+                <div id="chartDistrict" style="min-height:420px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deep-Dive Visualizations Banner -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 bg-light p-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+            <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-circle">
+                <i class="fa-solid fa-chart-pie fs-4"></i>
+            </div>
+            <div>
+                <h6 class="fw-bold mb-1 text-dark">Need Deep-Dive Visual Exploration & Heatmaps?</h6>
+                <p class="text-muted small mb-0">Explore Area Matrix Heatmaps, Crime Type Distribution & Chargesheet Disposals in the dedicated Visualizations Studio.</p>
+            </div>
+        </div>
+        <a href="{{ url_for('visualization.index') }}" class="btn btn-outline-primary btn-sm fw-bold px-3">
+            <i class="fa-solid fa-arrow-right me-1"></i> Open Visualizations Studio
+        </a>
+    </div>
+</div>
+
+
+<!-- Dynamic Area Ranking Table -->
+{% if top_areas %}
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-ranking-star text-warning me-2"></i>Area Rankings (Highest to Lowest Reported Cases)</h5>
+        <span class="badge bg-primary">Dynamic Database Query</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Rank</th>
+                    <th>Area Name</th>
+                    <th>District</th>
+                    <th>State</th>
+                    <th>Total Cases</th>
+                    <th>Avg Crime Rate</th>
+                    <th>Chargesheeted</th>
+                    <th>Convictions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in top_areas %}
+                <tr>
+                    <td><span class="badge rounded-pill {% if loop.index == 1 %}bg-danger{% elif loop.index <= 3 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">#{{ loop.index }}</span></td>
+                    <td class="fw-bold text-primary">{{ a.area }}</td>
+                    <td>{{ a.district }}</td>
+                    <td>{{ a.state }}</td>
+                    <td class="fw-bold">{{ "{:,}".format(a.total_cases) }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ "%.2f"|format(a.avg_crime_rate) }}</span></td>
+                    <td>{{ "{:,}".format(a.total_chargesheeted) }}</td>
+                    <td>{{ "{:,}".format(a.total_convictions) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function renderPlotly(containerId, chartObj) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        try {
+            Plotly.purge(containerId);
+            if (chartObj && chartObj.data && chartObj.layout) {
+                Plotly.newPlot(containerId, chartObj.data, chartObj.layout, {responsive: true});
+            } else {
+                container.innerHTML = '<div class="alert alert-light text-center py-4 text-muted"><i class="fa-solid fa-chart-line me-2"></i>No data available for the selected filters.</div>';
+            }
+        } catch (e) {
+            console.error("Plotly rendering error for " + containerId, e);
+            container.innerHTML = '<div class="alert alert-warning text-center py-4"><i class="fa-solid fa-triangle-exclamation me-2"></i>Unable to display chart.</div>';
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const chartData = {
+            year: {{ charts.chart_year | safe }},
+            crimeType: {{ charts.chart_crime_type | safe }},
+            state: {{ charts.chart_state | safe }},
+            district: {{ charts.chart_district | safe }}
+        };
+
+        renderPlotly("chartYear", chartData.year);
+        renderPlotly("chartCrimeType", chartData.crimeType);
+        renderPlotly("chartState", chartData.state);
+        renderPlotly("chartDistrict", chartData.district);
+    });
+</script>
+{% endblock %}

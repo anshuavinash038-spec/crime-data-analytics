@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Data Visualization - Crime Data Analytics{% endblock %}
+
+{% block content %}
+<!-- Analytics Module Header with Unified Sub-Navigation -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden border-start border-4 border-primary">
+    <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center">
+            <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3 me-3">
+                <i class="fa-solid fa-chart-line fs-3"></i>
+            </div>
+            <div>
+                <h3 class="fw-bold text-dark mb-1">Crime Analytics & Intelligence Center</h3>
+                <p class="text-muted small mb-0">Statistical modeling, interactive Plotly visualizations & Power BI Desktop reports</p>
+            </div>
+        </div>
+        <ul class="nav nav-pills gap-1">
+            <li class="nav-item">
+                <a class="nav-link fw-bold px-3 py-2 text-nowrap {% if request.endpoint == 'analysis.index' %}active shadow-sm{% else %}text-secondary bg-light{% endif %}" href="{{ url_for('analysis.index') }}">
+                    <i class="fa-solid fa-calculator me-1"></i> Statistical Analysis
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link fw-bold px-3 py-2 text-nowrap {% if request.endpoint == 'visualization.index' %}active shadow-sm{% else %}text-secondary bg-light{% endif %}" href="{{ url_for('visualization.index') }}">
+                    <i class="fa-solid fa-chart-pie me-1"></i> Visualizations Studio
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link fw-bold px-3 py-2 text-nowrap {% if request.endpoint == 'powerbi.index' %}active shadow-sm text-dark bg-warning bg-opacity-25 border border-warning{% else %}text-dark bg-warning bg-opacity-10 border border-warning border-opacity-50{% endif %}" href="{{ url_for('powerbi.index') }}">
+                    <i class="fa-solid fa-chart-column me-1 text-warning"></i> Power BI Desktop
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 bg-light">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('visualization.index') }}" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">State</label>
+                <select name="state" id="filterState" class="form-select form-select-sm" onchange="onStateChange(this)">
+                    <option value="">All States</option>
+                    {% for st in states %}
+                    <option value="{{ st }}" {% if filters.state == st %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">District</label>
+                <select name="district" id="filterDistrict" class="form-select form-select-sm" onchange="onDistrictChange(this)">
+                    <option value="">All Districts</option>
+                    {% for dt in districts %}
+                    <option value="{{ dt }}" {% if filters.district == dt %}selected{% endif %}>{{ dt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">Area</label>
+                <select name="area" id="filterArea" class="form-select form-select-sm">
+                    <option value="">All Areas</option>
+                    {% for ar in areas %}
+                    <option value="{{ ar }}" {% if filters.area == ar %}selected{% endif %}>{{ ar }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-1">
+                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">Update Charts</button>
+                <a href="{{ url_for('visualization.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Area Heatmap Matrix (Centerpiece Visual) -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-border-all text-danger me-2"></i>Area vs Crime Type Density Heatmap Matrix</h5>
+            <small class="text-muted">High-density hotspots across official administrative areas & crime categories</small>
+        </div>
+        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger fw-semibold px-3 py-1">Spatial Matrix</span>
+    </div>
+    <div class="card-body p-3" style="overflow-y: auto; max-height: 700px;">
+        <div id="visHeatmap"></div>
+    </div>
+</div>
+
+<!-- Deep Dive Comparative Visuals Grid -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="fw-bold mb-0 text-info"><i class="fa-solid fa-chart-bar me-2"></i>Top Crime Affected Areas (Bar Chart)</h6>
+            </div>
+            <div class="card-body p-3">
+                <div id="visTopAreas" style="min-height: 380px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="fw-bold mb-0 text-warning"><i class="fa-solid fa-scale-balanced me-2"></i>Chargesheeted vs Convictions Judicial Comparison</h6>
+            </div>
+            <div class="card-body p-3">
+                <div id="visChargesheetConviction" style="min-height: 380px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function renderPlotly(containerId, chartObj) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        try {
+            Plotly.purge(containerId);
+            if (chartObj && chartObj.data && chartObj.layout) {
+                Plotly.newPlot(containerId, chartObj.data, chartObj.layout, {responsive: true});
+            } else {
+                container.innerHTML = '<div class="alert alert-light text-center py-4 text-muted"><i class="fa-solid fa-chart-line me-2"></i>No data available for the selected filters.</div>';
+            }
+        } catch (e) {
+            console.error("Plotly rendering error for " + containerId, e);
+            container.innerHTML = '<div class="alert alert-warning text-center py-4"><i class="fa-solid fa-triangle-exclamation me-2"></i>Unable to display chart.</div>';
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const visData = {
+            topAreas: {{ charts.chart_top_areas | safe }},
+            chargesheetConviction: {{ charts.chart_chargesheet_conviction | safe }},
+            heatmap: {{ charts.chart_heatmap | safe }}
+        };
+
+        renderPlotly("visTopAreas", visData.topAreas);
+        renderPlotly("visChargesheetConviction", visData.chargesheetConviction);
+        renderPlotly("visHeatmap", visData.heatmap);
+    });
+</script>
+{% endblock %}

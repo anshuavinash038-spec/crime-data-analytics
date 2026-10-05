@@ -1,0 +1,193 @@
+{% extends "base.html" if not (current_user.is_authenticated and current_user.is_admin) else "admin/base.html" %}
+
+{% block title %}Report Generation - Crime Data Analytics{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <div>
+        <h2 class="fw-bold text-primary mb-1"><i class="fa-solid fa-file-pdf me-2"></i>Report Generation Module</h2>
+        <p class="text-muted mb-0">Generate analytical reports complete with server-side Matplotlib chart figures</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.download_pdf', state=filters.state, district=filters.district, area=filters.area, year=filters.year) }}" class="btn btn-danger btn-sm fw-bold">
+            <i class="fa-solid fa-file-pdf me-1"></i> Download PDF Report
+        </a>
+        <a href="{{ url_for('crime.export_csv', state=filters.state, district=filters.district, area=filters.area, year=filters.year) }}" class="btn btn-outline-success btn-sm">
+            <i class="fa-solid fa-file-csv me-1"></i> Download CSV
+        </a>
+        {% if chart_filename %}
+        <a href="{{ url_for('reports.get_chart_image', filename=chart_filename) }}" download class="btn btn-outline-primary btn-sm">
+            <i class="fa-solid fa-download me-1"></i> Download PNG Chart
+        </a>
+        {% endif %}
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-print me-1"></i> Print
+        </button>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 bg-light no-print">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('reports.index') }}" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">State</label>
+                <select name="state" id="filterState" class="form-select form-select-sm" onchange="onStateChange(this)">
+                    <option value="">All States</option>
+                    {% for st in states %}
+                    <option value="{{ st }}" {% if filters.state == st %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">District</label>
+                <select name="district" id="filterDistrict" class="form-select form-select-sm" onchange="onDistrictChange(this)">
+                    <option value="">All Districts</option>
+                    {% for dt in districts %}
+                    <option value="{{ dt }}" {% if filters.district == dt %}selected{% endif %}>{{ dt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">Area</label>
+                <select name="area" id="filterArea" class="form-select form-select-sm">
+                    <option value="">All Areas</option>
+                    {% for ar in areas %}
+                    <option value="{{ ar }}" {% if filters.area == ar %}selected{% endif %}>{{ ar }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-1">
+                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">Generate Report</button>
+                <a href="{{ url_for('reports.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Printable Report Content Document -->
+<div class="card border border-secondary shadow-lg rounded-4 p-5 bg-white print-document">
+    <!-- Report Header -->
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-4 mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Crime Data Analytics & Summary Report</h3>
+            <p class="text-muted mb-0">University of Mumbai T.Y.B.Sc. IT / CS (NEP 2020) Academic Report</p>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-primary px-3 py-2 fs-6 mb-1">Official Analytical Brief</span>
+            <div class="small text-muted">Generated: <strong>{{ generated_at }}</strong></div>
+        </div>
+    </div>
+
+    <!-- Active Filters Brief -->
+    <div class="alert alert-light border mb-4">
+        <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-filter me-2"></i>Report Parameters & Geographic Filter Scope</h6>
+        <div class="row">
+            <div class="col-md-3">State: <strong>{{ filters.state or 'All States' }}</strong></div>
+            <div class="col-md-3">District: <strong>{{ filters.district or 'All Districts' }}</strong></div>
+            <div class="col-md-3">Area (Level-3): <strong>{{ filters.area or 'All Areas' }}</strong></div>
+            <div class="col-md-3">Year Scope: <strong>{{ filters.year or 'All Years' }}</strong></div>
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    {% if analysis.summary %}
+    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-square-poll-vertical me-2 text-primary"></i>1. Key Performance Summary</h5>
+    <div class="row g-3 mb-4">
+        <div class="col-3">
+            <div class="p-3 border rounded text-center">
+                <small class="text-muted fw-bold">Total Cases Reported</small>
+                <h4 class="fw-bold text-primary mb-0">{{ "{:,}".format(analysis.summary.total_cases) }}</h4>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="p-3 border rounded text-center">
+                <small class="text-muted fw-bold">Avg Crime Rate / 100k</small>
+                <h4 class="fw-bold text-danger mb-0">{{ analysis.summary.avg_crime_rate }}</h4>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="p-3 border rounded text-center">
+                <small class="text-muted fw-bold">Chargesheet Rate %</small>
+                <h4 class="fw-bold text-warning mb-0">{{ analysis.summary.chargesheet_rate }}%</h4>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="p-3 border rounded text-center">
+                <small class="text-muted fw-bold">Conviction Rate %</small>
+                <h4 class="fw-bold text-success mb-0">{{ analysis.summary.conviction_rate }}%</h4>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Matplotlib Static Report Image -->
+    {% if chart_filename %}
+    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-image me-2 text-primary"></i>2. Server-side Rendered Matplotlib Chart</h5>
+    <div class="text-center mb-4 p-3 bg-light rounded border">
+        <img src="{{ url_for('reports.get_chart_image', filename=chart_filename) }}" alt="Report Matplotlib Chart" class="img-fluid rounded shadow-sm" style="max-height: 420px;">
+    </div>
+    {% endif %}
+
+    <!-- Key Findings & Insights -->
+    {% if analysis.insights %}
+    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clipboard-check me-2 text-primary"></i>3. Analytical Findings & Dynamic Insights</h5>
+    <div class="mb-4">
+        <ul class="list-group">
+            {% for item in analysis.insights %}
+            <li class="list-group-item bg-light border-0 mb-1 rounded">
+                <i class="fa-solid fa-circle-dot text-primary me-2"></i>{{ item }}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Area Statistics Breakdown Table -->
+    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-table me-2 text-primary"></i>4. Area-wise Crime Distribution</h5>
+    <div class="table-responsive mb-4">
+        <table class="table table-sm table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Area</th>
+                    <th>District</th>
+                    <th>State</th>
+                    <th>Cases</th>
+                    <th>Chargesheeted</th>
+                    <th>Convictions</th>
+                    <th>Conviction %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in analysis.area_stats %}
+                <tr>
+                    <td class="fw-bold text-primary">{{ row.area }}</td>
+                    <td>{{ row.district }}</td>
+                    <td>{{ row.state }}</td>
+                    <td>{{ "{:,}".format(row.cases_reported) }}</td>
+                    <td>{{ "{:,}".format(row.chargesheeted) }}</td>
+                    <td>{{ "{:,}".format(row.convictions) }}</td>
+                    <td>{{ row.conviction_rate }}%</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-2 text-muted">No area breakdown available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- System Signature Block -->
+    <div class="row pt-4 border-top mt-4">
+        <div class="col-6">
+            <small class="text-muted">Report Generated By System</small>
+            <div class="fw-bold">Crime Data Analytics & Visualization Platform</div>
+        </div>
+        <div class="col-6 text-end">
+            <small class="text-muted">System Intelligence Unit</small>
+            <div class="fw-bold">Level-3 Area Analytics Engine</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

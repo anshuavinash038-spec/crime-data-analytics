@@ -8,6 +8,8 @@ from models.user_model import User
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    app.jinja_env.auto_reload = True
     Config.init_app(app)
 
     # Initialize Flask-Login
@@ -24,8 +26,10 @@ def create_app():
     with app.app_context():
         try:
             DatabaseService.init_db()
+            app.logger.info("[App Startup] Database schema initialized and verified successfully.")
         except Exception as e:
-            print(f"[App Init Warning] DB initialization exception: {e}")
+            app.logger.error(f"[App Startup Error] Critical failure during DB initialization: {e}", exc_info=True)
+            print(f"[FATAL DB INIT ERROR] {e}")
 
     # Register Blueprints
     from routes.auth_routes import auth_bp
@@ -92,7 +96,8 @@ if __name__ == '__main__':
 
     print("=" * 60)
     print(" Crime Data Analytics and Visualization System")
-    print(" National Crime Intelligence & Level-3 Area Portal")
+    print(" National Crime Intelligence & Area Portal")
     print(f" Server running on http://{host}:{port} (Debug: {debug})")
     print("=" * 60)
     app.run(host=host, port=port, debug=debug)
+

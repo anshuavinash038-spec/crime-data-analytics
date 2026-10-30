@@ -17,9 +17,10 @@ class Config:
     DB_PASSWORD = os.getenv("DB_PASSWORD", "")
     DB_NAME = os.getenv("DB_NAME", "crime_analytics")
     
-    # SQLite Path
+    # SQLite Path — default to database/crime_analytics.db, or allow SQLITE_PATH override
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-    SQLITE_PATH = os.path.join(BASE_DIR, "database", "crime_analytics.db")
+    _default_sqlite_path = os.path.join(BASE_DIR, "database", "crime_analytics.db")
+    SQLITE_PATH = os.getenv("SQLITE_PATH", _default_sqlite_path)
 
     # Auto-parse cloud DATABASE_URL if provided
     if DB_URL:

@@ -1,10 +1,8 @@
-"""
-WSGI Entry Point for Production Deployment.
-Used by Gunicorn, Waitress, uWSGI, Render, Railway, Heroku, AWS Elastic Beanstalk, etc.
-"""
+"""WSGI entry point for Render, Railway, Heroku, and Gunicorn deployments."""
 from app import create_app
 
-app = create_app()
+application = create_app()
+app = application
 
 if __name__ == "__main__":
     app.run()
